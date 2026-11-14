@@ -8,7 +8,7 @@ import os
 from mcp.server.mcpserver import MCPServer
 
 from koji_mcp.client import KojiClient
-from koji_mcp.tools import builds, catalog, tags, tasks
+from koji_mcp.tools import builds, catalog, diagnose, tags, tasks
 
 INSTRUCTIONS = """\
 Read-only access to a Koji build system hub (Fedora's by default).
@@ -20,7 +20,7 @@ List tools paginate with limit/offset; dates are ISO 8601 in UTC.
 
 def create_server(client: KojiClient) -> MCPServer:
     mcp = MCPServer("koji_mcp", instructions=INSTRUCTIONS)
-    for module in (builds, tags, tasks, catalog):
+    for module in (builds, tags, tasks, diagnose, catalog):
         module.register(mcp, client)
     return mcp
 

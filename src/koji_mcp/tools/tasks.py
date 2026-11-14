@@ -55,6 +55,25 @@ async def list_outputs(client: KojiClient, task_id: int) -> dict[str, int]:
     return {name: int(info.get("st_size") or 0) for name, info in stats.items()}
 
 
+async def download_end(
+    client: KojiClient, task_id: int, file_name: str, outputs: dict[str, int]
+) -> tuple[str, bool]:
+    """The last MAX_LOG_BYTES of an output file, starting at a whole line.
+
+    Returns the text and whether the start of the file was cut off.
+    """
+    if file_name not in outputs:
+        available = ", ".join(sorted(outputs)) or "none"
+        raise ToolError(f"Task {task_id} has no output file {file_name!r}. Available files: {available}.")
+    size = outputs[file_name]
+    offset = max(0, size - MAX_LOG_BYTES)
+    data = await client.call("downloadTaskOutput", task_id, file_name, offset=offset, size=size - offset)
+    text = data.decode("utf-8", errors="replace")
+    if offset > 0:
+        text = text.partition("\n")[2]  # drop the partial first line
+    return text.rstrip("\n"), offset > 0
+
+
 async def fetch_log_tail(
     client: KojiClient,
     task_id: int,
@@ -65,21 +84,19 @@ async def fetch_log_tail(
     """Download the end of a task output file, at most MAX_LOG_BYTES."""
     if outputs is None:
         outputs = await list_outputs(client, task_id)
-    if file_name not in outputs:
-        available = ", ".join(sorted(outputs)) or "none"
-        raise ToolError(f"Task {task_id} has no output file {file_name!r}. Available files: {available}.")
-    size = outputs[file_name]
-    offset = max(0, size - MAX_LOG_BYTES)
-    data = await client.call("downloadTaskOutput", task_id, file_name, offset=offset, size=size - offset)
-    text = data.decode("utf-8", errors="replace")
-    if offset > 0:
-        text = text.partition("\n")[2]  # drop the partial first line
-    content, truncated = tail_text(text.rstrip("\n"), tail_lines)
+    text, cut = await download_end(client, task_id, file_name, outputs)
+    return log_record(client, task_id, file_name, outputs[file_name], text, cut, tail_lines)
+
+
+def log_record(
+    client: KojiClient, task_id: int, file_name: str, size: int, text: str, cut: bool, tail_lines: int
+) -> dict:
+    content, truncated = tail_text(text, tail_lines)
     return {
         "task_id": task_id,
         "file": file_name,
         "size": size,
-        "truncated": truncated or offset > 0,
+        "truncated": truncated or cut,
         "lines_shown": len(content.splitlines()),
         "content": content,
         "url": log_url(client, task_id, file_name),
