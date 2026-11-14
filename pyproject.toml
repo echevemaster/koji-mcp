@@ -1,0 +1,29 @@
+[project]
+name = "koji-mcp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Eduardo Javier Echeverria Alvarado", email = "echevemaster@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "koji>=1.36.1",
+    "mcp>=1.20",
+    "pydantic>=2.14.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
