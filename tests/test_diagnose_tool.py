@@ -72,6 +72,21 @@ async def test_diagnose_by_nvr_reads_the_first_failed_arch_task(make_server):
     assert all(args[0] == 101 for name, args, _ in session.calls if name == "downloadTaskOutput")
 
 
+async def test_diagnose_lists_every_arch_subtask_state(make_server):
+    children = CHILDREN + [{"id": 104, "method": "buildArch", "state": 2, "arch": "s390x", "label": "s390x"}]
+    server, _ = make_server(
+        **_handlers(getTaskChildren=lambda tid, request=False, strict=False: [dict(c) for c in children])
+    )
+    text = await call_text(server, "koji_diagnose_failed_build", build="x")
+    assert "- **Arch subtasks**: aarch64 FAILED, x86_64 FAILED, s390x CLOSED" in text
+    data = json.loads(await call_text(server, "koji_diagnose_failed_build", build="x", response_format="json"))
+    assert [(t["arch"], t["state"]) for t in data["arch_subtasks"]] == [
+        ("aarch64", "FAILED"),
+        ("x86_64", "FAILED"),
+        ("s390x", "CLOSED"),
+    ]
+
+
 async def test_diagnose_key_lines_come_from_before_the_tail(make_server):
     log = "\n".join(["make: *** [Makefile:12: all] Error 2"] + [f"+ noise {i}" for i in range(100)])
     server, _ = make_server(**_handlers(**_logs(build_log=log)))

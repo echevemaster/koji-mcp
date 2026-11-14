@@ -119,6 +119,9 @@ def render_markdown(report: dict) -> str:
     if report["other_failed_tasks"]:
         others = ", ".join(f"{t['id']} {t['method']} {t['arch']}" for t in report["other_failed_tasks"])
         lines.append(f"- **Other failed tasks**: {others}")
+    if report["arch_subtasks"]:
+        states = ", ".join(f"{t['arch']} {t['state']}" for t in report["arch_subtasks"])
+        lines.append(f"- **Arch subtasks**: {states}")
     if report["error"]:
         lines.append(f"- **Koji error**: {report['error']}")
     lines.append(f"- **Likely cause**: {report['likely_cause']}")
@@ -147,7 +150,8 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
     ) -> str:
         """Explain why a build failed, in one call.
 
-        Finds the first failed subtask, reads Koji's error, scans build.log and
+        Finds the first failed subtask, lists the state of every arch subtask
+        (to see whether only one arch failed), reads Koji's error, scans build.log and
         root.log for error lines, guesses the likely cause (missing
         BuildRequires, failing %build/%check, unpackaged files, and Go, Python,
         Rust, C/C++ or CMake errors such as a too-old Go or a missing module)
@@ -203,6 +207,7 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
             "task_id": task_id,
             "failed_task": brief(target),
             "other_failed_tasks": [brief(t) for t in others],
+            "arch_subtasks": [brief(c) for c in children if c.get("method") == "buildArch"],
             "error": error,
             "likely_cause": likely_cause(texts) if texts else "unknown: logs are not available",
             "logs": logs,
