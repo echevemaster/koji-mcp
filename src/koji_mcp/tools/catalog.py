@@ -62,8 +62,14 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
         tag: Annotated[str | None, Field(description="Tag name.")] = None,
         package: Annotated[str | None, Field(description="Package name.")] = None,
         user: Annotated[str | None, Field(description="User who made the change.")] = None,
-        after: Annotated[str | None, Field(description="ISO 8601 date: changes after it.")] = None,
-        before: Annotated[str | None, Field(description="ISO 8601 date: changes before it.")] = None,
+        after: Annotated[
+            str | None,
+            Field(description="ISO 8601 date. Keeps rows where either the change (tag) or its undo (untag) is after it."),
+        ] = None,
+        before: Annotated[
+            str | None,
+            Field(description="ISO 8601 date. Keeps rows where either the change (tag) or its undo (untag) is before it."),
+        ] = None,
         limit: Limit = DEFAULT_LIMIT,
         offset: Offset = 0,
         response_format: Format = "markdown",

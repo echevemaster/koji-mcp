@@ -90,6 +90,9 @@ async def test_history_description_explains_create_and_revoke(make_server):
     tool = {t.name: t for t in await server.list_tools()}["koji_history"]
     assert "revoke" in tool.description and "untag" in tool.description
     assert "create_time, newest first" in tool.description
+    props = tool.input_schema["properties"]
+    for name in ("after", "before"):
+        assert "either" in props[name]["description"] and "untag" in props[name]["description"]
 
 
 async def test_history_json_keeps_raw_fields(make_server):
