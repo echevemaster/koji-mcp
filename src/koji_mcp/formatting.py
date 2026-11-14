@@ -16,14 +16,27 @@ def iso_from_ts(ts: float) -> str:
     return datetime.fromtimestamp(ts, tz=UTC).isoformat(timespec="seconds")
 
 
+def _iso_from_text(text: str) -> str:
+    """Koji's ``'2024-08-12 12:39:55.767621+00:00'`` to ISO 8601; other text unchanged."""
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return text
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.isoformat(timespec="seconds")
+
+
 def normalize(value: Any) -> Any:
-    """Replace koji's ``X_ts`` epoch fields with ISO 8601 ``X_time`` fields."""
+    """Make every ``X_time`` field ISO 8601, preferring koji's ``X_ts`` epoch value."""
     if isinstance(value, dict):
         out: dict[str, Any] = {}
         stamps: dict[str, Any] = {}
         for key, item in value.items():
             if key.endswith("_ts"):
                 stamps[key[: -len("_ts")] + "_time"] = item
+            elif key.endswith("_time") and isinstance(item, str):
+                out[key] = _iso_from_text(item)
             else:
                 out[key] = normalize(item)
         for key, ts in stamps.items():

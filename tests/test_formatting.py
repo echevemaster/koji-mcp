@@ -80,3 +80,12 @@ def test_tail_text_keeps_last_lines_and_reports_truncation():
     assert truncated is True
     out, truncated = tail_text("a\nb", 3)
     assert (out, truncated) == ("a\nb", False)
+
+
+def test_normalize_converts_koji_time_strings_without_ts_field():
+    data = {"creation_time": "2024-08-12 12:39:55.767621+00:00", "promotion_time": None, "owner_time": "n/a"}
+    assert normalize(data) == {
+        "creation_time": "2024-08-12T12:39:55+00:00",
+        "promotion_time": None,
+        "owner_time": "n/a",
+    }

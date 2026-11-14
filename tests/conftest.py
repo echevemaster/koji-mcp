@@ -76,3 +76,21 @@ def make_client() -> Callable[..., tuple[KojiClient, FakeSession]]:
         return client, session
 
     return factory
+
+
+@pytest.fixture
+def make_server(make_client):
+    """Build the real MCP server on top of a FakeSession."""
+    from koji_mcp.server import create_server
+
+    def factory(**handlers: Callable[..., Any]):
+        client, session = make_client(**handlers)
+        return create_server(client), session
+
+    return factory
+
+
+async def call_text(server, name: str, **arguments: Any) -> str:
+    result = await server.call_tool(name, arguments)
+    assert not result.is_error, result
+    return result.content[0].text
