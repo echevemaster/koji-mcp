@@ -15,12 +15,13 @@ from koji_mcp.tools.common import DEFAULT_LIMIT, READ_ONLY, Format, Limit, Offse
 SearchType = Literal["package", "build", "tag", "target", "user", "host", "rpm"]
 
 
-def _event_time(row: dict) -> float:
-    return row.get("revoke_ts") or row.get("create_ts") or 0
+def _create_time(row: dict) -> float:
+    return row.get("create_ts") or 0
 
 
-def _summary(row: dict) -> str:
-    parts: list[Any] = [row.get("tag.name"), row.get("package.name"), row.get("user.name")]
+def _subject(row: dict) -> str:
+    """What the change is about, besides the tag: a build NVR, a package or a user."""
+    parts: list[Any] = [row.get("package.name"), row.get("user.name")]
     if row.get("name") and row.get("version") and row.get("release"):
         parts.append(f"{row['name']}-{row['version']}-{row['release']}")
     return " ".join(str(part) for part in parts if part)
@@ -69,7 +70,14 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
     ) -> str:
         """Audit history: who tagged/untagged builds, changed tags or package lists, and when.
 
-        Needs at least one of build, tag, package or user. Newest changes first.
+        Needs at least one of build, tag, package or user. Each row is one
+        change of kind `table` (tag_listing: a build in a tag; tag_packages: a
+        package list entry; tag_inheritance, tag_config, ...). create_time and
+        creator_name say when and by whom it was made (e.g. the build was
+        tagged); revoke_time and revoker_name say when and by whom it was undone
+        (e.g. untagged). A move between tags, such as a Bodhi push, shows as an
+        untag of the old tag's row plus a new row for the new tag. Rows are
+        sorted by create_time, newest first.
         """
         filters = {"build": build, "tag": tag, "package": package, "user": user}
         if not any(filters.values()):
@@ -79,15 +87,15 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
         kwargs = {key: value for key, value in filters.items() if value is not None}
         tables = await client.call("queryHistory", **kwargs)
         rows = [{"table": table, **row} for table, entries in tables.items() for row in entries]
-        rows.sort(key=_event_time, reverse=True)
+        rows.sort(key=_create_time, reverse=True)
         rows, has_more = slice_page(rows, limit, offset)
         if response_format == "markdown":
-            rows = [dict(normalize(row), summary=_summary(row)) for row in rows]
+            rows = [dict(normalize(row), tag=row.get("tag.name"), subject=_subject(row)) for row in rows]
         return render(
             rows,
             response_format,
             title="History",
-            columns=["table", "summary", "create_time", "creator_name", "revoke_time", "revoker_name"],
+            columns=["table", "tag", "subject", "create_time", "creator_name", "revoke_time", "revoker_name"],
             offset=offset,
             has_more=has_more,
         )
