@@ -76,3 +76,29 @@ def test_web_and_top_urls_come_from_profile(make_client):
     client, _ = make_client()
     assert client.weburl == "https://koji.example.org/koji"
     assert client.topurl == "https://kojipkgs.example.org"
+
+
+def _no_config(profile, *args, **kwargs):
+    raise koji.ConfigurationError(f"no configuration for profile name: {profile}")
+
+
+def test_default_profile_falls_back_to_fedora_when_unconfigured(monkeypatch):
+    monkeypatch.setattr(koji, "read_config", _no_config)
+    client = KojiClient()
+    assert client.server == "https://koji.fedoraproject.org/kojihub"
+    assert client.weburl == "https://koji.fedoraproject.org/koji"
+    assert client.topurl == "https://kojipkgs.fedoraproject.org"
+
+
+async def test_missing_named_profile_is_an_actionable_error(monkeypatch):
+    monkeypatch.setattr(koji, "read_config", _no_config)
+    client = KojiClient(profile="centos")
+    with pytest.raises(ToolError) as exc:
+        await client.call("getBuild", 1)
+    assert "'centos'" in str(exc.value)
+    assert "~/.koji/config.d/" in str(exc.value)
+
+
+def test_configured_profile_is_used(monkeypatch):
+    monkeypatch.setattr(koji, "read_config", lambda profile, *a, **k: {"server": f"https://{profile}/kojihub"})
+    assert KojiClient(profile="stream").server == "https://stream/kojihub"

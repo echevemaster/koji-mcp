@@ -8,6 +8,13 @@ from typing import Any, Callable, Iterable
 import koji
 from mcp.server.mcpserver.exceptions import ToolError
 
+DEFAULT_PROFILE = "koji"
+FEDORA_OPTS = {
+    "server": "https://koji.fedoraproject.org/kojihub",
+    "weburl": "https://koji.fedoraproject.org/koji",
+    "topurl": "https://kojipkgs.fedoraproject.org",
+}
+
 Call = tuple[str, tuple, dict]
 SessionFactory = Callable[[dict], Any]
 
@@ -25,7 +32,7 @@ class KojiClient:
 
     def __init__(
         self,
-        profile: str = "koji",
+        profile: str = DEFAULT_PROFILE,
         opts: dict | None = None,
         session_factory: SessionFactory = _default_session_factory,
     ) -> None:
@@ -37,8 +44,22 @@ class KojiClient:
     @property
     def opts(self) -> dict:
         if self._opts is None:
-            self._opts = dict(koji.read_config(self.profile))
+            self._opts = self._load_profile()
         return self._opts
+
+    def _load_profile(self) -> dict:
+        try:
+            return dict(koji.read_config(self.profile))
+        except koji.ConfigurationError:
+            # Systems without koji config files (macOS, non-Fedora distros)
+            # still get Fedora's hub for the default profile.
+            if self.profile == DEFAULT_PROFILE:
+                return dict(FEDORA_OPTS)
+            raise ToolError(
+                f"No koji configuration for profile {self.profile!r}. Create "
+                f"~/.koji/config.d/{self.profile}.conf with a [{self.profile}] section "
+                "setting server, weburl and topurl."
+            ) from None
 
     @property
     def server(self) -> str:
