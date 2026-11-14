@@ -1,0 +1,42 @@
+<evaluation>
+   <qa_pair>
+      <question>The Fedora rawhide build glibc-2.40.9000-29.fc42 failed in January 2025. Exactly one of its per-architecture build tasks failed, and the others were canceled. What is the numeric host ID of the builder that ran the failed per-architecture task? Answer with the integer only.</question>
+      <answer>450</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>The systemd build systemd-257.5-1.fc43 failed in April 2025 even though most architectures built fine. Which architecture's build failed? Answer with Koji's arch name only.</question>
+      <answer>aarch64</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Compare the main x86_64 bash binary package (not debuginfo, debugsource, devel or doc) produced by build bash-5.2.37-3.fc43 with the one produced by bash-5.2.37-1.fc42. By how many bytes is the fc43 package larger? Answer with the integer only.</question>
+      <answer>5130</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Among the x86_64 RPMs produced by the build python3.13-3.13.2-2.fc43, which package is the largest by file size? Answer with the RPM package name only (no version, release or arch).</question>
+      <answer>python3.13-freethreading</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>For the build coreutils-9.6-2.fc42, what is the combined size in bytes of the two aarch64 RPMs named exactly coreutils and coreutils-single? Answer with the integer only.</question>
+      <answer>1790372</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>The rawhide kernel build kernel-6.17.0-0.rc7.250926g4ff71af020ae5.60.fc44 failed in September 2025. Counting the child tasks of its build task whose method is buildArch, how many ended in the FAILED state? Answer with the integer only.</question>
+      <answer>5</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>During the Fedora 40 Beta freeze, build bash-5.2.26-3.fc40 was added to the tag that marks the Beta release content. Which Koji user added it to that tag? Answer with the Koji username only.</question>
+      <answer>jnsamyak</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Before Fedora 40 was released, Bodhi moved build bash-5.2.26-3.fc40 out of the updates-candidate tag and into the main Fedora 40 tag. On what UTC date did that happen? Answer in YYYY-MM-DD format.</question>
+      <answer>2024-02-09</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>In late May 2024, systemd 255.7 for Fedora 40 and systemd 254.13 for Fedora 39 were both pushed as stable updates. Which of the two builds reached its release's stable updates tag first? Answer with the full NVR of that build.</question>
+      <answer>systemd-255.7-1.fc40</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>The Fedora 40 build coreutils-9.4-6.fc40 was carried into the Fedora 41 tag f41 and later removed from it. Which Koji user removed it from f41? Answer with the Koji username only.</question>
+      <answer>oscar</answer>
+   </qa_pair>
+</evaluation>

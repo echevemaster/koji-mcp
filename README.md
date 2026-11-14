@@ -26,7 +26,7 @@ Every tool is read-only and uses anonymous hub calls, so it needs no login.
 |------|-----------------|
 | `koji_diagnose_failed_build` | Why a build or task failed: the failed subtask, Koji's error, the likely cause (including Go, Python, Rust, C/C++ and CMake errors), key error lines and the `build.log` tail |
 | `koji_get_build` | One build: state, owner, task, timestamps, web link |
-| `koji_list_builds` | Builds filtered by package, owner, state, NVR prefix or dates |
+| `koji_list_builds` | Builds filtered by package, package-name prefix, owner, state or dates |
 | `koji_list_rpms` | The RPMs a build produced |
 | `koji_latest_builds` | The latest build of each package in a tag |
 | `koji_list_tagged` | Every build tagged into a tag |
@@ -60,6 +60,19 @@ If no configuration exists for the default `koji` profile (macOS, or a distro ot
 uv run pytest                               # unit and stdio protocol tests (offline)
 KOJI_MCP_LIVE=1 uv run pytest tests/test_live_smoke.py   # read-only checks against Fedora Koji
 npx @modelcontextprotocol/inspector uv run koji-mcp      # explore the tools interactively
+```
+
+## Evaluations
+
+`evals/koji_evaluation.xml` holds 10 questions about Fedora Koji. A model answers each one using only this server's tools. Each question needs several tool calls, and its answer is a single value checked by exact string match. The questions only use closed, historical data (builds and tag changes from before May 2026), so the answers do not change.
+
+Run them with the evaluation harness from Anthropic's `mcp-builder` skill (`scripts/evaluation.py`). It calls the Claude API, so it needs `ANTHROPIC_API_KEY`:
+
+```bash
+uv sync   # creates .venv/bin/koji-mcp
+uv run --no-project --with anthropic --with 'mcp<2' python /path/to/mcp-builder/scripts/evaluation.py \
+  -t stdio -c "$PWD/.venv/bin/koji-mcp" \
+  -m claude-opus-5-5 -o eval-report.md evals/koji_evaluation.xml
 ```
 
 Out of scope for now: write operations (`build`, `cancelTask`, `tagBuild`, ...), which need authentication.
