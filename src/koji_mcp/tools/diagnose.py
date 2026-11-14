@@ -23,6 +23,36 @@ KEY_LINE = re.compile(
     r"|nothing provides|no matching package|problem:|not found|unpackaged)(?![\w-])",
     re.IGNORECASE,
 )
+# Toolchain errors the whole-word pattern misses: "go: ..." lines, Go compiler
+# positions, Python exceptions ("ModuleNotFoundError:") and CMake's "Could NOT find".
+TOOLCHAIN_LINE = re.compile(r"^(?:go: |\S+\.go:\d+:\d+: )|[a-z]Error:|could not find", re.IGNORECASE)
+# The first match names the cause; order goes from specific to generic.
+TOOLCHAIN_CAUSES = [
+    (re.compile(r"^go: .*requires go >= ", re.M), "the buildroot's Go is older than go.mod requires"),
+    (re.compile(r"^\S+\.go:\d+:\d+: ", re.M), "Go compilation failed"),
+    (
+        re.compile(r"(?:ModuleNotFoundError|ImportError): No module named"),
+        "a Python module is missing, likely a missing BuildRequires (python3dist(...))",
+    ),
+    (
+        re.compile(r"Extra \S+ does not exist in upstream metadata"),
+        "the spec asks for a Python extra upstream does not provide (check %pyproject_buildrequires -x)",
+    ),
+    (
+        re.compile(r"error: no matching package named|failed to select a version for the requirement"),
+        "a Rust crate is missing, likely a missing rust-*-devel BuildRequires",
+    ),
+    (re.compile(r"^error\[E\d{4}\]", re.M), "Rust compilation failed"),
+    (
+        re.compile(r"fatal error: \S+\.h(?:pp)?: No such file or directory"),
+        "a C/C++ header is missing, likely a missing -devel BuildRequires",
+    ),
+    (
+        re.compile(r"Could NOT find \w+|No package '[^']+' found|Package '[^']+'.* not found"),
+        "a library was not found, likely a missing -devel BuildRequires",
+    ),
+    (re.compile(r"CMake Error"), "CMake configuration failed"),
+]
 DEPENDENCY_FAILURE = re.compile(
     r"No match for argument|nothing provides|No matching package to install|Failed to resolve the transaction"
 )
@@ -34,7 +64,9 @@ def key_lines(text: str) -> list[str]:
     seen: dict[str, None] = {}
     for line in text.splitlines():
         line = line.strip()
-        if line and not line.startswith("+ ") and KEY_LINE.search(line):  # "+ " is shell trace
+        if line.startswith("+ "):  # shell trace
+            continue
+        if KEY_LINE.search(line) or TOOLCHAIN_LINE.search(line):
             seen.pop(line, None)
             seen[line] = None
     return list(seen)[-MAX_KEY_LINES:]
@@ -48,13 +80,27 @@ def likely_cause(texts: dict[str, str]) -> str:
         return "files were installed but not listed in %files"
     if "File not found:" in build_log:
         return "a file listed in %files was not installed"
+    section_failure = None
     match = BAD_EXIT.search(build_log)
     if match:
         section = match.group(1)
-        if section == "check":
-            return "the %check section failed (tests)"
-        return f"the %{section} section failed"
-    return "unknown: read the key lines and the log tails"
+        section_failure = f"the %{section} section failed" + (" (tests)" if section == "check" else "")
+    toolchain = toolchain_cause(build_log)
+    if toolchain and section_failure:
+        return f"{section_failure}: {toolchain}"
+    return toolchain or section_failure or "unknown: read the key lines and the log tails"
+
+
+def toolchain_cause(build_log: str) -> str | None:
+    """The language-specific reason, quoting the line that shows it."""
+    for pattern, cause in TOOLCHAIN_CAUSES:
+        match = pattern.search(build_log)
+        if match:
+            start = build_log.rfind("\n", 0, match.start()) + 1
+            end = build_log.find("\n", match.start())
+            line = build_log[start : end if end != -1 else None].strip()
+            return f"{cause} (`{line}`)"
+    return None
 
 
 async def failure_message(client: KojiClient, task_id: int) -> str | None:
@@ -103,8 +149,9 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
 
         Finds the first failed subtask, reads Koji's error, scans build.log and
         root.log for error lines, guesses the likely cause (missing
-        BuildRequires, failing %build/%check, unpackaged files) and returns the
-        build.log tail. Give exactly one of build or task_id.
+        BuildRequires, failing %build/%check, unpackaged files, and Go, Python,
+        Rust, C/C++ or CMake errors such as a too-old Go or a missing module)
+        and returns the build.log tail. Give exactly one of build or task_id.
         """
         if (build is None) == (task_id is None):
             raise ToolError("Give exactly one of build or task_id.")

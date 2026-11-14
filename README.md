@@ -24,7 +24,7 @@ Every tool is read-only and uses anonymous hub calls, so it needs no login.
 
 | Tool | What it answers |
 |------|-----------------|
-| `koji_diagnose_failed_build` | Why a build or task failed: the failed subtask, Koji's error, the likely cause, key error lines and the `build.log` tail |
+| `koji_diagnose_failed_build` | Why a build or task failed: the failed subtask, Koji's error, the likely cause (including Go, Python, Rust, C/C++ and CMake errors), key error lines and the `build.log` tail |
 | `koji_get_build` | One build: state, owner, task, timestamps, web link |
 | `koji_list_builds` | Builds filtered by package, owner, state, NVR prefix or dates |
 | `koji_list_rpms` | The RPMs a build produced |

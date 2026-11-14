@@ -61,7 +61,10 @@ async def test_diagnose_by_nvr_reads_the_first_failed_arch_task(make_server):
     assert "- **Failed task**: 101 buildArch aarch64" in text
     assert "- **Other failed tasks**: 103 buildArch x86_64" in text
     assert "mock exited with status 1" in text
-    assert "- **Likely cause**: the %build section failed" in text
+    assert (
+        "- **Likely cause**: the %build section failed: the buildroot's Go is older than go.mod requires"
+        " (`go: go.mod requires go >= 1.27.3 (running go 1.26.10; GOTOOLCHAIN=local)`)"
+    ) in text
     assert "go: go.mod requires go >= 1.27.3" in text
     assert "https://kojipkgs.example.org/work/tasks/101/101/build.log" in text
     downloaded = {args[1] for name, args, _ in session.calls if name == "downloadTaskOutput"}
@@ -116,6 +119,83 @@ async def test_diagnose_needs_exactly_one_reference(make_server, args):
     server, _ = make_server(**_handlers())
     with pytest.raises(ToolError, match="exactly one of build or task_id"):
         await server.call_tool("koji_diagnose_failed_build", args)
+
+
+BAD_BUILD = "error: Bad exit status from /var/tmp/rpm-tmp.0y (%build)"
+BAD_CHECK = "error: Bad exit status from /var/tmp/rpm-tmp.0y (%check)"
+
+
+@pytest.mark.parametrize(
+    ("line", "bad_exit", "expected"),
+    [
+        (
+            "go: go.mod requires go >= 1.27.3 (running go 1.26.10; GOTOOLCHAIN=local)",
+            BAD_BUILD,
+            "the %build section failed: the buildroot's Go is older than go.mod requires",
+        ),
+        (
+            "internal/cli/run.go:42:7: undefined: bazel.Run",
+            BAD_BUILD,
+            "the %build section failed: Go compilation failed",
+        ),
+        (
+            "ModuleNotFoundError: No module named 'pytest_asyncio'",
+            BAD_CHECK,
+            "the %check section failed (tests): a Python module is missing,"
+            " likely a missing BuildRequires (python3dist(...))",
+        ),
+        (
+            "ValueError: Extra test does not exist in upstream metadata. Available extras: [].",
+            "error: Bad exit status from /var/tmp/rpm-tmp.0y (%generate_buildrequires)",
+            "the %generate_buildrequires section failed: the spec asks for a Python extra"
+            " upstream does not provide (check %pyproject_buildrequires -x)",
+        ),
+        (
+            "error[E0425]: cannot find value `x` in this scope",
+            BAD_BUILD,
+            "the %build section failed: Rust compilation failed",
+        ),
+        (
+            "error: no matching package named `serde` found",
+            BAD_BUILD,
+            "the %build section failed: a Rust crate is missing, likely a missing rust-*-devel BuildRequires",
+        ),
+        (
+            "CMake Error at CMakeLists.txt:12 (project):",
+            BAD_BUILD,
+            "the %build section failed: CMake configuration failed",
+        ),
+        (
+            "-- Could NOT find ZLIB (missing: ZLIB_LIBRARY ZLIB_INCLUDE_DIR)",
+            BAD_BUILD,
+            "the %build section failed: a library was not found, likely a missing -devel BuildRequires",
+        ),
+        (
+            "src/main.c:3:10: fatal error: zlib.h: No such file or directory",
+            BAD_BUILD,
+            "the %build section failed: a C/C++ header is missing, likely a missing -devel BuildRequires",
+        ),
+    ],
+)
+def test_likely_cause_names_the_toolchain_error(line, bad_exit, expected):
+    from koji_mcp.tools.diagnose import key_lines, likely_cause
+
+    log = "\n".join(["+ make", line, "RPM build errors:", bad_exit])
+    assert likely_cause({"build.log": log}) == f"{expected} (`{line.strip()}`)"
+    assert line.strip() in key_lines(log)
+
+
+def test_likely_cause_without_bad_exit_still_names_the_toolchain_error():
+    from koji_mcp.tools.diagnose import likely_cause
+
+    line = "CMake Error at CMakeLists.txt:12 (project):"
+    assert likely_cause({"build.log": line}) == f"CMake configuration failed (`{line}`)"
+
+
+def test_likely_cause_keeps_generic_section_failure():
+    from koji_mcp.tools.diagnose import likely_cause
+
+    assert likely_cause({"build.log": "make: *** [all] Error 2\n" + BAD_BUILD}) == "the %build section failed"
 
 
 def test_key_lines_ignore_package_names_and_shell_trace():
