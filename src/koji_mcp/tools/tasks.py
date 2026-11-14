@@ -22,15 +22,17 @@ TASK_FIELDS = [
     "arch",
     "label",
     "owner",
+    "owner_name",
     "parent",
     "host_id",
+    "host_name",
     "create_time",
     "start_time",
     "completion_time",
     "request",
     "url",
 ]
-CHILD_COLUMNS = ["id", "method", "arch", "state", "label"]
+CHILD_COLUMNS = ["id", "method", "arch", "state", "label", "host_id", "host_name"]
 
 TaskId = Annotated[int, Field(ge=1, description="Numeric Koji task ID.")]
 TailLines = Annotated[int, Field(ge=1, le=2000, description="How many lines from the end of the log to return.")]
@@ -41,6 +43,30 @@ def task_state_name(state: Any) -> Any:
         return koji.TASK_STATES[state]
     except (KeyError, IndexError, TypeError):
         return state
+
+
+async def resolve_names(client: KojiClient, info: dict, children: list[dict]) -> None:
+    """Add owner_name and host_name next to the numeric IDs, in one round-trip.
+
+    Best effort: if the lookup fails, the task is still shown with its IDs.
+    """
+    owner = info.get("owner")
+    host_ids = sorted({t["host_id"] for t in [info, *children] if t.get("host_id")})
+    calls = [("getHost", (host_id,), {}) for host_id in host_ids]
+    if owner:
+        calls.append(("getUser", (owner,), {}))
+    if not calls:
+        return
+    try:
+        results = await client.multicall(calls)
+    except ToolError:
+        return
+    hosts = {host_id: (host or {}).get("name") for host_id, host in zip(host_ids, results)}
+    if owner:
+        info["owner_name"] = (results[-1] or {}).get("name")
+    for task in [info, *children]:
+        if task.get("host_id"):
+            task["host_name"] = hosts.get(task["host_id"])
 
 
 def log_url(client: KojiClient, task_id: int, file_name: str) -> str | None:
@@ -120,7 +146,10 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
         """Get a task (state, method, arch, request, timestamps) and its child tasks.
 
         A build task has one buildArch child per arch; use koji_task_logs on a
-        failed child to read its build.log or root.log.
+        failed child to read its build.log or root.log. Owner and host IDs come
+        with their names. For a child, label is what it builds and arch is the
+        Koji arch it was scheduled for: a "noarch" label runs on an x86_64
+        builder, and the i686 label has arch i386.
         """
         info, children = await client.multicall(
             [
@@ -135,6 +164,7 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
         children = normalize(children)
         for child in children:
             child["state"] = task_state_name(child.get("state"))
+        await resolve_names(client, info, children)
         if client.weburl:
             info["url"] = f"{client.weburl}/taskinfo?taskID={task_id}"
         if response_format == "json":
