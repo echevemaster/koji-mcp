@@ -101,18 +101,22 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
         offset: Offset = 0,
         response_format: Format = "markdown",
     ) -> str:
-        """List the RPMs produced by a build (name, arch, size)."""
+        """List the RPMs produced by a build: package name, NVR, arch and size.
+
+        size_bytes is the size of the RPM file in bytes (not the installed size).
+        """
         info = await resolve_build(client, build)
         kwargs = {"buildID": info["id"]}
         if arches:
             kwargs["arches"] = arches
         rows = await client.call("listRPMs", **kwargs, queryOpts=query_opts(limit, offset, "name"))
         rows, has_more = page(rows, limit)
+        rows = [dict(row, size_bytes=row.get("size")) for row in rows]
         return render(
             rows,
             response_format,
             title=f"RPMs of {info.get('nvr')}",
-            columns=["nvr", "arch", "size"],
+            columns=["name", "nvr", "arch", "size_bytes"],
             offset=offset,
             has_more=has_more,
         )

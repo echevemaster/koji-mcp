@@ -91,3 +91,15 @@ async def test_list_rpms_resolves_nvr_and_filters_arches(make_server):
         {"buildID": 2525453, "arches": ["x86_64"], "queryOpts": {"limit": 101, "offset": 0, "order": "name"}},
     )
     assert "| bash-5.2.32-1.fc41 | x86_64 |" in text
+
+
+async def test_list_rpms_shows_package_name_and_size_unit(make_server):
+    rpms = [
+        {"name": "bash", "nvr": "bash-5.2.32-1.fc41", "arch": "x86_64", "size": 1874934},
+        {"name": "bash-doc", "nvr": "bash-doc-5.2.32-1.fc41", "arch": "x86_64", "size": 1518456},
+    ]
+    server, _ = make_server(getBuild=lambda info, strict=False: dict(BUILD), listRPMs=lambda **kw: rpms)
+    text = await call_text(server, "koji_list_rpms", build="bash-5.2.32-1.fc41")
+    assert "| name | nvr | arch | size_bytes |" in text
+    assert "| bash | bash-5.2.32-1.fc41 | x86_64 | 1874934 |" in text
+    assert "| bash-doc | bash-doc-5.2.32-1.fc41 | x86_64 | 1518456 |" in text
