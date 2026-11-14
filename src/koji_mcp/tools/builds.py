@@ -61,14 +61,14 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
         package: Annotated[str | None, Field(description="Package name, e.g. 'bash'.")] = None,
         owner: Annotated[str | None, Field(description="Koji user name of the build owner.")] = None,
         state: Annotated[BuildState | None, Field(description="Only builds in this state.")] = None,
-        prefix: Annotated[str | None, Field(description="Only builds whose NVR starts with this.")] = None,
+        prefix: Annotated[str | None, Field(description="Only packages whose name starts with this, e.g. 'python-' (not an NVR prefix).")] = None,
         created_after: Annotated[str | None, Field(description="ISO 8601 date, e.g. '2024-05-01'.")] = None,
         created_before: Annotated[str | None, Field(description="ISO 8601 date, e.g. '2024-06-01'.")] = None,
         limit: Limit = DEFAULT_LIMIT,
         offset: Offset = 0,
         response_format: Format = "markdown",
     ) -> str:
-        """List builds, newest first, filtered by package, owner, state, NVR prefix or dates."""
+        """List builds, newest first, filtered by package, package-name prefix, owner, state or dates."""
         filters = {
             "packageID": package,
             "userID": owner,
