@@ -6,6 +6,7 @@ from typing import Annotated
 
 import koji
 from mcp.server.mcpserver import MCPServer
+from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
 from koji_mcp.client import KojiClient
@@ -79,6 +80,12 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
         }
         kwargs = {key: value for key, value in filters.items() if value is not None}
         rows = await client.call("listBuilds", **kwargs, queryOpts=query_opts(limit, offset, "-build_id"))
+        # The hub returns no builds, not an error, for an unknown user name.
+        if not rows and owner and await client.call("getUser", owner) is None:
+            raise ToolError(
+                f"No Koji user named {owner!r}. Find the exact user name with "
+                "koji_search (search_type='user'), or start from a package the person maintains."
+            )
         rows, has_more = page(rows, limit)
         for row in rows:
             row["state"] = build_state_name(row.get("state"))
