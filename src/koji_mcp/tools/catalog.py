@@ -24,6 +24,8 @@ def _subject(row: dict) -> str:
     parts: list[Any] = [row.get("package.name"), row.get("user.name")]
     if row.get("name") and row.get("version") and row.get("release"):
         parts.append(f"{row['name']}-{row['version']}-{row['release']}")
+    if row.get("owner.name"):  # tag_package_owners: who owns the package in this tag
+        parts.append(f"(owner: {row['owner.name']})")
     return " ".join(str(part) for part in parts if part)
 
 
