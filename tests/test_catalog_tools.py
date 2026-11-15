@@ -75,14 +75,14 @@ async def test_history_sorts_by_create_time_and_separates_tag_and_subject(make_s
             row("f46", 600.0),
             row("f46-signing-pending", 200.0, revoke=300.0),
         ],
-        "tag_packages": [{"tag.name": "f46", "package.name": "bash", "user.name": "lzaoral", "create_ts": 50.0}],
+        "tag_packages": [{"tag.name": "f46", "package.name": "bash", "user.name": "alice", "create_ts": 50.0}],
     }
     server, _ = make_server(queryHistory=lambda **kw: history)
     text = await call_text(server, "koji_history", package="bash")
     assert "| table | tag | subject | create_time | creator_name | revoke_time | revoker_name |" in text
     tags = [line.split(" | ")[1] for line in text.splitlines() if line.startswith("| tag_")]
     assert tags == ["f46", "f46-updates-testing", "f46-signing-pending", "f46-updates-candidate", "f46"]
-    assert "| tag_packages | f46 | bash lzaoral |" in text
+    assert "| tag_packages | f46 | bash alice |" in text
 
 
 async def test_history_description_explains_create_and_revoke(make_server):

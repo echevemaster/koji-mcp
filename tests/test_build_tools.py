@@ -10,7 +10,7 @@ BUILD = {
     "nvr": "bash-5.2.32-1.fc41",
     "name": "bash",
     "state": 1,
-    "owner_name": "svashisht",
+    "owner_name": "bob",
     "task_id": 121669842,
     "creation_ts": 1723466000.0,
     "creation_time": "2024-08-12 12:33:20+00:00",
@@ -55,7 +55,7 @@ async def test_list_builds_maps_filters_to_hub_arguments(make_server):
         server,
         "koji_list_builds",
         package="bash",
-        owner="svashisht",
+        owner="bob",
         state="FAILED",
         created_after="2024-01-01",
         limit=2,
@@ -64,7 +64,7 @@ async def test_list_builds_maps_filters_to_hub_arguments(make_server):
     name, args, kwargs = session.calls[0]
     assert name == "listBuilds"
     assert kwargs["packageID"] == "bash"
-    assert kwargs["userID"] == "svashisht"
+    assert kwargs["userID"] == "bob"
     assert kwargs["state"] == 3
     assert kwargs["createdAfter"] == 1704067200.0
     assert kwargs["queryOpts"] == {"limit": 3, "offset": 4, "order": "-build_id"}

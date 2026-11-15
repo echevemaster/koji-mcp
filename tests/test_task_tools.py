@@ -21,7 +21,7 @@ CHILDREN = [
     {"id": 102, "method": "buildSRPMFromSCM", "state": 2, "arch": "noarch", "label": "srpm", "host_id": None},
 ]
 HOSTS = {450: {"id": 450, "name": "buildvm-x86-04.rdu3.fedoraproject.org"}}
-USERS = {7: {"id": 7, "name": "lzaoral"}}
+USERS = {7: {"id": 7, "name": "alice"}}
 
 
 def _task_handlers(**overrides):
@@ -59,7 +59,7 @@ async def test_get_task_shows_state_children_and_link(make_server):
 async def test_get_task_resolves_owner_and_host_names(make_server):
     server, session = make_server(**_task_handlers())
     text = await call_text(server, "koji_get_task", task_id=100)
-    assert "- **owner_name**: lzaoral" in text
+    assert "- **owner_name**: alice" in text
     assert "| 101 | buildArch | x86_64 | FAILED | x86_64 | 450 | buildvm-x86-04.rdu3.fedoraproject.org |" in text
     lookups = sorted((name, args) for name, args, _ in session.calls if name in ("getUser", "getHost"))
     assert lookups == [("getHost", (450,)), ("getUser", (7,))]
@@ -86,7 +86,7 @@ async def test_get_task_json_nests_children(make_server):
     data = json.loads(await call_text(server, "koji_get_task", task_id=100, response_format="json"))
     assert data["state"] == "FAILED"
     assert data["create_time"] == "1970-01-01T00:00:00+00:00"
-    assert data["owner_name"] == "lzaoral"
+    assert data["owner_name"] == "alice"
     assert [c["state"] for c in data["children"]] == ["FAILED", "CLOSED"]
     assert data["children"][0]["host_name"] == "buildvm-x86-04.rdu3.fedoraproject.org"
 
