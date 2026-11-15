@@ -1,22 +1,32 @@
 # koji-mcp
 
-A read-only [MCP](https://modelcontextprotocol.io) server for the [Koji](https://forge.fedoraproject.org/koji/koji) build system. An AI assistant can use it to look up builds, tags, tasks and logs, and to explain why a build failed. Fedora's Koji is the default hub.
+A read-only [MCP](https://modelcontextprotocol.io) server for the [Koji](https://forge.fedoraproject.org/koji/koji) build system. An AI assistant can use it to look up builds, tags, tasks and logs, and to explain why a build failed. Fedora's Koji is the default hub, and no login is needed.
 
 ## Quick path
 
-1. Install the dependencies (needs [uv](https://docs.astral.sh/uv/)):
+Requirements: Python 3.12 or newer and [uv](https://docs.astral.sh/uv/).
+
+1. Clone the repository and install the dependencies:
 
    ```bash
+   git clone https://github.com/echevemaster/koji-mcp.git
+   cd koji-mcp
    uv sync
    ```
 
 2. Register the server with your MCP client. For Claude Code:
 
    ```bash
-   claude mcp add koji -- uv --directory /path/to/koji-mcp run koji-mcp
+   claude mcp add koji -- uv --directory "$PWD" run koji-mcp
    ```
 
-3. Ask something like *"Why did bazelisk-1.30.0-4.fc44 fail?"* or *"Which bash build is in f41-updates?"*.
+   Other clients take the same command (`uv --directory /path/to/koji-mcp run koji-mcp`) in their MCP server configuration. The server speaks MCP over stdio.
+
+3. Ask something like:
+
+   - *"Why did bazelisk-1.30.0-4.fc44 fail?"*
+   - *"Which bash build is in f41-updates?"*
+   - *"Which systemd update for Fedora 40 spent the longest in updates-testing in 2024?"*
 
 ## Tools
 
@@ -75,4 +85,10 @@ uv run --no-project --with anthropic --with 'mcp<2' python /path/to/mcp-builder/
   -m claude-opus-5-5 -o eval-report.md evals/koji_evaluation.xml
 ```
 
-Out of scope for now: write operations (`build`, `cancelTask`, `tagBuild`, ...), which need authentication.
+## Scope
+
+The server is read-only on purpose. Write operations such as `build`, `cancelTask` or `tagBuild` are out of scope, because they need authentication and can change a real build system.
+
+## License
+
+[MIT](LICENSE)

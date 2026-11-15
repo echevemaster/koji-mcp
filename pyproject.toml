@@ -3,6 +3,8 @@ name = "koji-mcp"
 version = "0.1.0"
 description = "Read-only MCP server for the Koji build system"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Eduardo Javier Echeverria Alvarado", email = "echevemaster@gmail.com" }
 ]
