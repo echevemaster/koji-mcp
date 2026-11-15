@@ -1,0 +1,42 @@
+<evaluation>
+   <qa_pair>
+      <question>Consider the systemd updates for Fedora 40 that Bodhi pushed to the stable updates tag between 2024-07-02 and 2024-12-31 (inclusive, by the time they entered the stable tag). For each one, measure how long it sat in the Fedora 40 updates-testing tag, from being tagged there until being untagged. What is the longest of those durations, in whole hours rounded to the nearest hour? Answer with the integer only.</question>
+      <answer>83</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>In the second half of 2024 (2024-07-01 to 2024-12-31 UTC), several systemd builds for Fedora 40 were submitted to the Fedora 40 updates-candidate tag and later moved on by Bodhi. Which of them spent the least time in updates-candidate before Bodhi untagged it? Answer with the full NVR.</question>
+      <answer>systemd-255.13-1.fc40</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Among the Fedora 39 kernel updates that reached the Fedora 39 stable updates tag between 2024-04-01 and 2024-05-31 (inclusive), which one spent the longest time in the Fedora 39 updates-testing tag? Answer with the full NVR.</question>
+      <answer>kernel-6.8.9-200.fc39</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Between May and June 2024, one Fedora 39 kernel build entered the Fedora 39 updates-testing tag but was pulled from it without ever reaching the Fedora 39 stable updates tag. That build was later tagged for garbage collection. On what UTC date was it tagged into the garbage-collection tag? Answer in YYYY-MM-DD format.</question>
+      <answer>2024-06-18</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Of the glibc updates for Fedora 39 that reached the Fedora 39 stable updates tag during calendar year 2024, which one stayed longest in the Fedora 39 updates-testing tag before being promoted? Answer with the full NVR.</question>
+      <answer>glibc-2.38-19.fc39</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Exactly one glibc build created in January 2025 ended in the FAILED state. In its build task, one per-architecture child task failed while the others were canceled. What is the host name of the builder machine that ran that failed child task? Answer with the fully qualified host name.</question>
+      <answer>buildvm-a64-07.iad2.fedoraproject.org</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Two curl builds created in November 2024 failed: one for ELN and one for Fedora rawhide. For the rawhide one, a single per-architecture child task failed. What is the host name of the builder that ran it? Answer with the fully qualified host name.</question>
+      <answer>buildvm-x86-24.iad2.fedoraproject.org</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Look at the successfully completed (not deleted) python3.12 builds for Fedora 40 created between 2024-08-20 and 2024-12-31. Which one produced the smallest x86_64 python3-test RPM? Answer with the full NVR of the build.</question>
+      <answer>python3.12-3.12.6-1.fc40</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>On 2024-08-16, the same packager built the same nginx version for four Fedora releases. Which of those four builds took the longest from start to completion? Answer with the full NVR.</question>
+      <answer>nginx-1.26.2-1.fc42</answer>
+   </qa_pair>
+   <qa_pair>
+      <question>Take the most recently created bash build of calendar year 2024, ignoring ELN builds. What is the size in bytes of the x86_64 bash-doc RPM it produced? Answer with the integer only.</question>
+      <answer>1518456</answer>
+   </qa_pair>
+</evaluation>
