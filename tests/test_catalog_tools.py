@@ -85,6 +85,18 @@ async def test_history_sorts_by_create_time_and_separates_tag_and_subject(make_s
     assert "| tag_packages | f46 | bash alice |" in text
 
 
+async def test_history_package_owner_rows_show_the_owner(make_server):
+    history = {
+        "tag_package_owners": [
+            {"tag.name": "f45-Beta", "package.name": "gnome-rdp", "owner.name": "alice",
+             "create_ts": 10.0, "creator_name": "bob"},
+        ]
+    }
+    server, _ = make_server(queryHistory=lambda **kw: history)
+    text = await call_text(server, "koji_history", user="alice")
+    assert "| tag_package_owners | f45-Beta | gnome-rdp (owner: alice) |" in text
+
+
 async def test_history_description_explains_create_and_revoke(make_server):
     server, _ = make_server()
     tool = {t.name: t for t in await server.list_tools()}["koji_history"]
