@@ -60,9 +60,21 @@ async def test_list_builds_known_owner_without_builds_is_empty(make_server):
     assert "No results." in text
 
 
+async def test_list_builds_unknown_package_is_an_error(make_server):
+    server, _ = make_server(listBuilds=lambda **kw: [], getPackageID=lambda name, strict=False: None)
+    with pytest.raises(ToolError, match=r"No Koji package named 'no-such-pkg'.*koji_search"):
+        await server.call_tool("koji_list_builds", {"package": "no-such-pkg"})
+
+
+async def test_list_builds_known_package_without_matches_is_empty(make_server):
+    server, _ = make_server(listBuilds=lambda **kw: [], getPackageID=lambda name, strict=False: 1088)
+    text = await call_text(server, "koji_list_builds", package="bash", created_after="2030-01-01")
+    assert "No results." in text
+
+
 async def test_list_builds_with_results_does_not_look_up_the_owner(make_server):
     server, session = make_server(listBuilds=lambda **kw: [dict(BUILD)])
-    await call_text(server, "koji_list_builds", owner="bob")
+    await call_text(server, "koji_list_builds", owner="bob", package="bash")
     assert [name for name, _, _ in session.calls] == ["listBuilds"]
 
 

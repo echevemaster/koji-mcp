@@ -80,11 +80,16 @@ def register(mcp: MCPServer, client: KojiClient) -> None:
         }
         kwargs = {key: value for key, value in filters.items() if value is not None}
         rows = await client.call("listBuilds", **kwargs, queryOpts=query_opts(limit, offset, "-build_id"))
-        # The hub returns no builds, not an error, for an unknown user name.
+        # The hub returns no builds, not an error, for an unknown user or package name.
         if not rows and owner and await client.call("getUser", owner) is None:
             raise ToolError(
                 f"No Koji user named {owner!r}. Find the exact user name with "
                 "koji_search (search_type='user'), or start from a package the person maintains."
+            )
+        if not rows and package and await client.call("getPackageID", package) is None:
+            raise ToolError(
+                f"No Koji package named {package!r}. Find the exact package name with "
+                "koji_search (search_type='package')."
             )
         rows, has_more = page(rows, limit)
         for row in rows:
